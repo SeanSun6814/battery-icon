@@ -32,7 +32,7 @@ namespace percentage
             notifyIcon.Visible = true;
 
             Timer timer = new Timer();
-            timer.Interval = 1000;
+            timer.Interval = 10000;
             timer.Tick += new EventHandler(TimerTick);
             timer.Start();
             TimerTick(null, null);
@@ -93,14 +93,9 @@ namespace percentage
                         notifyIcon.Icon = icon;
                         String toolTipText = percentStr + "%";
                         if (isCharging)
-                        {
                             toolTipText += ", Charging...";
-                        }
-                        else
-                        {
-                            String lifeRemaining = powerStatus.BatteryLifeRemaining == -1 ? "Estimating..." : getReadableTime(powerStatus.BatteryLifeRemaining);
-                            toolTipText += ", " + lifeRemaining;
-                        }
+                        else if (powerStatus.BatteryLifeRemaining != -1)
+                            toolTipText += ", " + getReadableTime(powerStatus.BatteryLifeRemaining);
                         notifyIcon.Text = toolTipText;
                     }
                 }
