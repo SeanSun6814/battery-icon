@@ -10,7 +10,7 @@ namespace percentage
         [DllImport("user32.dll", CharSet=CharSet.Auto)]
         static extern bool DestroyIcon(IntPtr handle);
 
-        private const int fontSize = 18;
+        private const int fontSize = 22;
         private const string font = "Segoe UI";
 
         private NotifyIcon notifyIcon;
@@ -35,6 +35,7 @@ namespace percentage
             timer.Interval = 1000;
             timer.Tick += new EventHandler(TimerTick);
             timer.Start();
+            TimerTick(null, null);
         }
 
         private Bitmap GetTextBitmap(String text, Font font, Color fontColor)
@@ -71,10 +72,18 @@ namespace percentage
         private void TimerTick(object sender, EventArgs e)
         {
             PowerStatus powerStatus = SystemInformation.PowerStatus;
-            String percentage = (powerStatus.BatteryLifePercent * 100).ToString();
+            float percent = powerStatus.BatteryLifePercent * 100;
+            String percentStr = (percent).ToString();
             bool isCharging = SystemInformation.PowerStatus.PowerLineStatus == PowerLineStatus.Online;
-            String bitmapText = isCharging ? percentage + "*" : percentage;
-            using (Bitmap bitmap = new Bitmap(GetTextBitmap(bitmapText, new Font(font, fontSize), Color.White)))
+            Color color = Color.White;
+            if (isCharging)
+                color = Color.FromArgb(255, 0, 230, 0);
+            else if (percent <= 20)
+                color = Color.FromArgb(255, 255, 51, 0);
+            else if (percent <= 50)
+                color = Color.FromArgb(255, 255, 204, 0);
+
+            using (Bitmap bitmap = new Bitmap(GetTextBitmap(percentStr, new Font(font, fontSize, FontStyle.Bold), color)))
             {
                 System.IntPtr intPtr = bitmap.GetHicon();
                 try
@@ -82,7 +91,16 @@ namespace percentage
                     using (Icon icon = Icon.FromHandle(intPtr))
                     {
                         notifyIcon.Icon = icon;
-                        String toolTipText = percentage + "%" + (isCharging ? " Charging" : "");
+                        String toolTipText = percentStr + "%";
+                        if (isCharging)
+                        {
+                            toolTipText += ", Charging...";
+                        }
+                        else
+                        {
+                            String lifeRemaining = powerStatus.BatteryLifeRemaining == -1 ? "Estimating..." : getReadableTime(powerStatus.BatteryLifeRemaining);
+                            toolTipText += ", " + lifeRemaining;
+                        }
                         notifyIcon.Text = toolTipText;
                     }
                 }
@@ -92,5 +110,22 @@ namespace percentage
                 }
             }
         }
+        private String getReadableTime(int totalSeconds)
+        {
+            if (totalSeconds <= 0) return "Null";
+
+            int hours = totalSeconds / 3600;
+            int minutes = (totalSeconds % 3600) / 60;
+            int seconds = totalSeconds % 60;
+
+            if (hours > 0) 
+                return hours.ToString() + "h " + minutes.ToString() + "m";
+            else if (minutes > 0)
+                return minutes.ToString() + "m " + seconds.ToString() + "s";
+            else
+                return seconds.ToString() + "s";
+        }
+
+
     }
 }
